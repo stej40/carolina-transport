@@ -1,0 +1,13 @@
+{
+  "name": "agro-karolina",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "scripts": {
+    "dev:web": "pnpm --filter dispatcher-web dev",
+    "dev:pwa": "pnpm --filter driver-pwa dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  }
+}

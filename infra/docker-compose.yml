@@ -1,0 +1,63 @@
+name: karolina
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: karolina
+      POSTGRES_PASSWORD: karolina
+      POSTGRES_DB: karolina
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U karolina -d karolina"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  garage:
+    image: dxflrs/garage:v2.4.1
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: GKf1e2d3c4b5a69788796a5b4c
+      GARAGE_DEFAULT_SECRET_KEY: a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+      GARAGE_DEFAULT_BUCKET: karolina-documents
+    ports:
+      - "9000:3900" # S3 API
+      - "9001:3902" # static website endpoint (optional)
+      - "9003:3903" # admin/metrics
+    volumes:
+      - ./garage.toml:/etc/garage.toml
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ../apps/api
+    profiles: ["full"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://karolina:karolina@postgres:5432/karolina
+      S3_ENDPOINT: http://garage:3900
+      S3_ACCESS_KEY: GKf1e2d3c4b5a69788796a5b4c
+      S3_SECRET_KEY: a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90
+      S3_BUCKET: karolina-documents
+      S3_REGION: garage
+      SECRET_KEY: dev-only-secret
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      garage:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  garage-meta:
+  garage-data:
