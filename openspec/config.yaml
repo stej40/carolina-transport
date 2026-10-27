@@ -1,0 +1,67 @@
+schema: spec-driven
+
+context: |
+  Language: en
+  All artifacts must be written in en.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  # Project: IT System KAROLINA (agro-karolina)
+  A business IT system for a small Czech road-haulage company. Today a dispatcher
+  books transports, drivers collect paperwork per transport (transport order,
+  weighbridge tickets for loading/unloading, hull-cleaning certificate, ...), and
+  an office worker sorts the paper, enters orders into the POHODA accounting
+  system, issues invoices, e-mails them to customers, and manually pairs bank
+  payments with invoices. The office worker is going on maternity leave; the
+  system replaces that manual back office.
+
+  ## MVP roadmap
+  - MVP1: dispatcher web portal + offline-first driver PWA; orders, transports,
+    transport statuses, document collection, review, and completeness checks.
+  - MVP2: POHODA integration (order + invoice write, e-mail delivery).
+  - MVP3: OCR/AI extraction from weighbridge tickets and other documents.
+  - MVP4: bank statement import and automatic payment-to-invoice pairing (VS).
+  - MVP5 (optional): AI assistant layer (LangChain + MCP over the API).
+
+  ## Locked technical decisions
+  - Database: PostgreSQL 18 (postgres:18-alpine).
+  - Backend: Python 3.13.7 (uv, .python-version), FastAPI, SQLAlchemy 2.x async +
+    asyncpg, Alembic, Pydantic v2. Money is NUMERIC, never float.
+  - File storage: Garage 2.4 (S3-compatible, MIT, single container) with
+    presigned uploads; driver photos go directly to Garage, not through the API.
+    (MinIO community edition was archived 2026-04-25 - do not use.)
+  - Dispatcher frontend: React + TypeScript + Vite, TanStack Query + Router,
+    Tailwind + shadcn/ui.
+  - Driver frontend: offline-first PWA (own Vite app, vite-plugin-pwa,
+    Dexie.js/IndexedDB, outbox sync).
+  - API: versioned /api/v1 from day one; OpenAPI spec is the contract for future
+    native apps.
+  - Auth: own JWT module, access + refresh tokens, RBAC roles (dispatcher,
+    driver), argon2 password hashing.
+  - Monorepo: pnpm workspaces + uv - apps/api, apps/dispatcher-web,
+    apps/driver-pwa, packages/shared, infra/.
+
+  ## Data-model constraints (from MVP1 planning)
+  1. Orders must be billing-ready (quantity, unit, unit price, currency, VAT,
+     billing text) for the later POHODA invoice export.
+  2. Invoices carry a variable symbol (VS) owned by our system so bank payments
+     can be paired by VS + amount.
+  3. UUID primary keys, client-generatable (offline document creation).
+  4. Idempotency keys on all write endpoints (offline outbox replays must be safe).
+  5. Immutable event log for transport state transitions (audit; later webhooks,
+     MCP, AI assistant).
+  6. External-ID mapping per entity (system, external_id) for POHODA sync.
+  7. Document taxonomy is data: document types with required attributes per type.
+
+  ## Conventions
+  - Migrations: Alembic only; schema changes require an approved design.
+  - Every MVP/feature starts as an OpenSpec change (/opsx-propose); no domain
+    code without an approved proposal and spec deltas.
+  - Business domain terms come from Czech paperwork (objednavka, vazeni listek,
+     preprava); specs are written in English but may cite the Czech term.
+
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always state what is out of scope
+  tasks:
+    - Break tasks into chunks deliverable in at most one focused session

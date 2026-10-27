@@ -12,6 +12,8 @@ dependencies = [
     "pydantic-settings>=2.9",
     "pydantic>=2.11",
     "boto3>=1.43.115",
+    "argon2-cffi>=25.1.0",
+    "pyjwt>=2.15.1",
 ]
 
 [dependency-groups]
@@ -21,6 +23,7 @@ dev = [
     "httpx>=0.28",
     "ruff>=0.12",
     "mypy>=1.17",
+    "aiosqlite>=0.22.1",
 ]
 
 [tool.pytest.ini_options]

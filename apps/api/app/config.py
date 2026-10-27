@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     debug: bool = False
     database_url: str = "postgresql+asyncpg://karolina:karolina@localhost:5432/karolina"
-    secret_key: str = "change-me-in-production"
+    secret_key: str = "dev-only-secret-change-me-0123456789abcdef"
     access_token_ttl_min: int = 15
     refresh_token_ttl_days: int = 30
 
