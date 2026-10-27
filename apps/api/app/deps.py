@@ -4,10 +4,11 @@ from typing import Annotated, Any
 import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models import User
+from app.models import ADMIN_ROLES, GroupMember, User
 from app.security import decode_access_token
 
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -56,11 +57,31 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 dispatcher_only = require_roles("dispatcher")
 admin_only = require_roles("company-admin", "system-admin")
 
+
+async def get_scoped_group_ids(user: CurrentUser, session: Session) -> set[uuid.UUID] | None:
+    """Group ids a caller may touch. None = unrestricted (company/system-admin)."""
+    if any(role in ADMIN_ROLES for role in user.roles):
+        return None
+    result = await session.execute(
+        select(GroupMember.group_id).where(GroupMember.user_id == user.id)
+    )
+    return set(result.scalars().all())
+
+
+def group_in_scope(scoped: set[uuid.UUID] | None, group_id: uuid.UUID) -> bool:
+    return scoped is None or group_id in scoped
+
+
+ScopedGroupIds = Annotated[set[uuid.UUID] | None, Depends(get_scoped_group_ids)]
+
 __all__ = [
     "CurrentUser",
+    "ScopedGroupIds",
     "Session",
     "admin_only",
     "dispatcher_only",
     "get_current_user",
+    "get_scoped_group_ids",
+    "group_in_scope",
     "require_roles",
 ]

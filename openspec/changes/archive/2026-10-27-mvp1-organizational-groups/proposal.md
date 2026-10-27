@@ -12,7 +12,8 @@ for assigning drivers to orders later.
   belong to exactly one group (enforced by the dependent transports change).
 - Company-admin manages groups and dispatcher memberships; dispatchers assign
   drivers/trucks within their own groups and move resources between their own
-  groups.
+  groups. Dispatcher membership per group is unbounded: a group may have any
+  number of dispatchers, including none.
 - Truck and trailer master data (SPZ), no availability scheduling in MVP1.
 - Group-scoped visibility on all queries: foreign groups respond as-if-absent
   for dispatchers; company-admin sees all; system-admin unrestricted.

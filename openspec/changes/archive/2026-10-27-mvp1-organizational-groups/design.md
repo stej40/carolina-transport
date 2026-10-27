@@ -6,7 +6,8 @@ before migration).
 ## Entities
 - `groups` (id UUID PK, name, created_at)
 - `group_members` (group_id FK, user_id FK, UNIQUE pair) - dispatcher
-  memberships, many-to-many
+  memberships, many-to-many; no min/max constraint on dispatcher members per
+  group (0..n)
 - `trucks` (id UUID PK, spz UNIQUE, group_id FK NOT NULL)
 - `trailers` (id UUID PK, spz UNIQUE, group_id FK NOT NULL) - added at
   domain-discovery sign-off (Jiří): trailer master data alongside trucks

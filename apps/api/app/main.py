@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.deps import AuthError
-from app.routers import auth, health, users
+from app.routers import auth, drivers, fleet, groups, health, users
 
 app = FastAPI(
     title="System KAROLINA API",
@@ -31,3 +31,7 @@ async def auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(groups.router, prefix="/api/v1")
+app.include_router(fleet.trucks_router, prefix="/api/v1")
+app.include_router(fleet.trailers_router, prefix="/api/v1")
+app.include_router(drivers.router, prefix="/api/v1")
