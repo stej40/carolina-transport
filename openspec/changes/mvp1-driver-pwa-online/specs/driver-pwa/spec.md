@@ -2,8 +2,8 @@
 
 ## Purpose
 Give drivers an installable mobile PWA to see their transports, record status
-changes, and photograph paperwork - fully usable with no signal at loading
-and unloading sites.
+changes, and photograph paperwork. Offline-first operation is added by the
+later mvp1-offline-sync change.
 
 ## ADDED Requirements
 
@@ -31,29 +31,13 @@ reserved trigger for a future push integration.
 - **THEN** the badge increases and the new transport is highlighted until
   acknowledged
 
-#### Scenario: Assignment while offline
-- **WHEN** a transport was assigned while the driver had no connectivity
-- **THEN** the indication appears right after the app reconnects and syncs
-
 ### Requirement: Status recording
 The driver SHALL be able to mark key transport states (start, arrival at
 pickup, arrival at delivery, completed) from the phone.
 
 #### Scenario: Start transport
 - **WHEN** the driver taps start on an assigned transport
-- **THEN** the state change is submitted (or queued if offline) and reflected
-  to the dispatcher
-
-### Requirement: Offline capture
-The PWA MUST let the driver record statuses and capture document photos
-without connectivity, queue them locally, and sync automatically when a
-connection returns, without creating duplicates on retry.
-
-#### Scenario: Airplane mode workflow
-- **WHEN** a driver photographs a weighbridge ticket with no signal and later
-  regains connectivity
-- **THEN** the queued status events and the document upload sync successfully
-  exactly once
+- **THEN** the state change is submitted and reflected to the dispatcher
 
 ### Requirement: Simple field UX
 The driver interface MUST be operable with large touch targets and minimal
