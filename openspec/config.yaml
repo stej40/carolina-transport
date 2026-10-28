@@ -54,6 +54,8 @@ context: |
 
   ## Conventions
   - Migrations: Alembic only; schema changes require an approved design.
+  - API layout: one module per entity under apps/api/app/models/ and
+    apps/api/app/schemas/, aggregation only via __init__.py re-exports.
   - Every MVP/feature starts as an OpenSpec change (/opsx-propose); no domain
     code without an approved proposal and spec deltas.
   - Business domain terms come from Czech paperwork (objednavka, vazeni listek,

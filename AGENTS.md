@@ -24,6 +24,9 @@
   postgres:18-alpine, Garage 2.4 S3).
 - Backend: SQLAlchemy 2.x async + asyncpg, Alembic migrations only, Pydantic
   v2. API is versioned under `/api/v1`; OpenAPI spec is the contract.
+- API layout: one module per entity under `apps/api/app/models/` and
+  `apps/api/app/schemas/`; aggregation only via `__init__.py` re-exports
+  (consumers keep importing `app.models` / `app.schemas`).
 - Auth: own JWT module (access + refresh), RBAC roles `dispatcher`/`driver`,
   argon2 hashing.
 - Do not introduce new infrastructure components (e.g., MinIO, Redis,

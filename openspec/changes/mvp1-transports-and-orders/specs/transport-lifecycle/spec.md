@@ -11,6 +11,8 @@ A dispatcher SHALL be able to create a transport order acting within one of
 their groups, describing the delivery (customer, pickup/delivery places,
 cargo, dates); the data MUST be billing-ready: quantity, unit, unit price,
 currency, VAT, and billing text. Every order belongs to exactly one group.
+Supported currencies are CZK and EUR; an order created without a currency
+gets the default currency from portal settings.
 
 #### Scenario: Create order
 - **WHEN** a dispatcher saves a new order with all required fields
@@ -20,6 +22,15 @@ currency, VAT, and billing text. Every order belongs to exactly one group.
 #### Scenario: Missing billing data
 - **WHEN** an order is submitted without unit price or VAT information
 - **THEN** the system rejects it and reports the missing fields
+
+#### Scenario: Default currency applied
+- **WHEN** a dispatcher creates an order without specifying a currency
+- **THEN** the system stores the order with the default currency from portal
+  settings
+
+#### Scenario: Unsupported currency rejected
+- **WHEN** an order is submitted with a currency other than CZK or EUR
+- **THEN** the system rejects it and reports the unsupported currency
 
 ### Requirement: Order editing
 A dispatcher SHALL be able to edit any order field while no invoice is linked
@@ -37,18 +48,52 @@ billing fields. Every accepted edit SHALL be recorded in the event log.
 - **THEN** the system rejects the change and the order is unchanged
 
 ### Requirement: Driver assignment
-A dispatcher SHALL be able to assign a driver of the same group to an order;
-the driver SHALL be able to see the assignment as their current transport.
-Assignment of drivers outside the order's group MUST be rejected.
+A dispatcher SHALL be able to assign drivers of the transport's group to a
+transport, at most two at a time; every assigned driver SHALL see the
+transport in their active list and either MAY act on it. Assignments of
+drivers outside the transport's group MUST be rejected, as MUST assigning a
+third driver to the same transport.
 
 #### Scenario: Assign driver
-- **WHEN** a dispatcher assigns a driver of their group to an order
+- **WHEN** a dispatcher assigns a driver of the transport's group to a
+  transport
 - **THEN** the transport appears in that driver's active list
 
+#### Scenario: Second driver
+- **WHEN** a dispatcher assigns a second driver to a transport that has one
+- **THEN** both drivers see the transport and either can act on it
+
+#### Scenario: Third driver rejected
+- **WHEN** a dispatcher tries to assign a third driver to a transport
+- **THEN** the system rejects the assignment and the pair is unchanged
+
 #### Scenario: Foreign driver rejected
-- **WHEN** a dispatcher tries to assign a driver who is not in the order's
-  group
-- **THEN** the system rejects the assignment and the order is unchanged
+- **WHEN** a dispatcher tries to assign a driver who is not in the
+  transport's group
+- **THEN** the system rejects the assignment and the transport is unchanged
+
+### Requirement: Driver switch
+The dispatcher SHALL be able to add or replace an assigned driver while the
+transport is in any state; the system MUST record the change in the event log
+and MUST update both drivers' active lists accordingly.
+
+#### Scenario: Swap during ride
+- **WHEN** a transport is in-transit and the dispatcher replaces driver A
+  with driver B
+- **THEN** driver B sees the transport as active, driver A no longer does,
+  and an event records the change
+
+### Requirement: Multiple transports per order
+A dispatcher SHALL be able to create more than one transport on a single
+order when the goods must be split across vehicles; each transport MUST have
+its own state machine and event history, and billing data MUST stay on the
+order.
+
+#### Scenario: Split order
+- **WHEN** a dispatcher creates a second transport on an order that already
+  has one
+- **THEN** both transports exist under the order and a transition on one
+  leaves the other unchanged
 
 ### Requirement: Transport state machine
 The system SHALL track each transport through the defined states (at least:

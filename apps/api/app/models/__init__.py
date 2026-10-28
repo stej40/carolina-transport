@@ -1,0 +1,24 @@
+"""SQLAlchemy models package.
+
+Layout rule (AGENTS.md): one module per entity/family; this __init__ is the
+only aggregation point and re-exports every public name.
+"""
+
+from app.models.common import ADMIN_ROLES, LANGUAGES, ROLES, utcnow
+from app.models.fleet import FleetMixin, Trailer, Truck
+from app.models.group import Group, GroupMember
+from app.models.user import RefreshToken, User
+
+__all__ = [
+    "ADMIN_ROLES",
+    "LANGUAGES",
+    "ROLES",
+    "utcnow",
+    "RefreshToken",
+    "User",
+    "Group",
+    "GroupMember",
+    "FleetMixin",
+    "Trailer",
+    "Truck",
+]

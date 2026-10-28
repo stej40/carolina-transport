@@ -15,6 +15,22 @@ mechanisms that are agnostic to the exact field list.
 - **Order editing**: `orders.editable_until_invoice_linked` derived server-side
   (always true while no invoice table exists); billing-field writes rejected
   when false; edits append order-level events to the same log.
-- **Money**: NUMERIC(12,2), VAT percent integer; rounding policy: round half
+- **Multiple transports per order**: `transports.order_id` FK already allows
+  1..N; no stored order-level aggregate state (order "done" = all transports
+  completed, derived). Splitting goods is logistical - money stays on the
+  order (per-transport quantities arrive with MVP3 documents).
+- **Two drivers**: join table `transport_drivers` (transport_id, driver_id,
+  assigned_by, assigned_at, UNIQUE(transport_id, driver_id)) REPLACES the
+  signed schema's `transports.driver_id`; max 2 enforced in service layer.
+  Switch = row replace + `transport_events` event with new event_type
+  `assignment`; transition endpoints verify the acting driver is currently
+  assigned.
+- **Currency & portal settings**: `portal_settings` single-row table
+  (default_currency CHAR(3) CHECK IN ('CZK','EUR'), updated_at), seeded
+  'CZK'; GET + update endpoint under /api/v1/settings; order POST falls back
+  to the stored default when currency omitted; order currency validated
+  against ('CZK','EUR').
+- **Money**: NUMERIC(12,2), currency restricted to CZK/EUR, VAT percent
+  integer; rounding policy: round half
   up at line level, amounts summed.
 - Group scoping via `scoped_groups` dependency from mvp1-organizational-groups.
