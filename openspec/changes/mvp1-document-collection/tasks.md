@@ -12,5 +12,7 @@
 
 ## Tests
 - [ ] e2e upload -> pending-review -> approve
+- [ ] Dispatcher-side upload on in-transit transport: pending-review +
+      uploader = dispatcher
 - [ ] reject -> resubmit -> both versions in history
 - [ ] missing-doc flow: transport incomplete until approved

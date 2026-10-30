@@ -8,8 +8,10 @@ and knowing exactly when a transport file is complete.
 
 ## What Changes
 - New capability `document-collection`: data-driven document taxonomy (types +
-  required attributes from discovery), presigned direct-to-Garage uploads
-  (bytes never transit the API), approve/reject-with-reason loop, versioned
+  required attributes from discovery), presigned direct-to-Garage uploads by
+  driver or dispatcher - dispatchers may upload on a driver's behalf during an
+  active transport (bytes never transit the API), approve/reject-with-reason
+  loop, versioned
   resubmissions kept for audit, per-transport completeness check exposed to
   both roles.
 

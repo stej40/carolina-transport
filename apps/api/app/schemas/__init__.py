@@ -14,6 +14,15 @@ from app.schemas.group import (
     GroupOut,
     GroupUpdate,
 )
+from app.schemas.order import OrderCreate, OrderOut, OrderUpdate
+from app.schemas.portal_settings import PortalSettingsOut, PortalSettingsUpdate
+from app.schemas.transport import (
+    TransportCreate,
+    TransportDriversAssign,
+    TransportOut,
+    TransportTransition,
+)
+from app.schemas.transport_event import TransportEventOut
 from app.schemas.user import ProfileUpdate, UserCreate, UserOut
 
 __all__ = [
@@ -32,4 +41,14 @@ __all__ = [
     "GroupUpdate",
     "FleetCreate",
     "FleetOut",
+    "OrderCreate",
+    "OrderOut",
+    "OrderUpdate",
+    "PortalSettingsOut",
+    "PortalSettingsUpdate",
+    "TransportCreate",
+    "TransportDriversAssign",
+    "TransportOut",
+    "TransportTransition",
+    "TransportEventOut",
 ]

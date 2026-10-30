@@ -11,7 +11,9 @@ cheap now, very expensive to retrofit later.
   signed schema), order editing until invoice-linked (invoice entity does not
   exist in MVP1; server-side editability check reserved for MVP2), an order
   MAY have more than one transport (goods split across vehicles; billing
-  stays on the order), driver assignment restricted to the order's group with
+  stays on the order), dispatcher order cancellation cascading to all
+  not-yet-completed transports (terminal, event-logged), driver assignment
+  restricted to the order's group with
   at most two drivers per transport and mid-ride switch (event-logged),
   transport state machine with transition validation, append-only event log,
   Idempotency-Key middleware on all write endpoints, UUID PKs
@@ -23,7 +25,8 @@ cheap now, very expensive to retrofit later.
   `portal_settings` (+ `external_ids` scaffold per config constraints).
 
 ## Out of scope
-Documents (mvp1-document-collection), invoicing/POHODA (MVP2), portal and PWA
+Documents, including dispatcher-side document upload during a transport
+(mvp1-document-collection), invoicing/POHODA (MVP2), portal and PWA
 UI (later changes), OCR, per-transport quantity split (arrives with
 weighbridge documents/OCR in MVP3), settings & currency UI (dispatcher portal
 change).

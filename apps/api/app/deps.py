@@ -58,9 +58,17 @@ dispatcher_only = require_roles("dispatcher")
 admin_only = require_roles("company-admin", "system-admin")
 
 
+def is_admin(user: User) -> bool:
+    return any(role in ADMIN_ROLES for role in user.roles)
+
+
+def is_dispatcher(user: User) -> bool:
+    return is_admin(user) or "dispatcher" in user.roles
+
+
 async def get_scoped_group_ids(user: CurrentUser, session: Session) -> set[uuid.UUID] | None:
     """Group ids a caller may touch. None = unrestricted (company/system-admin)."""
-    if any(role in ADMIN_ROLES for role in user.roles):
+    if is_admin(user):
         return None
     result = await session.execute(
         select(GroupMember.group_id).where(GroupMember.user_id == user.id)
@@ -70,6 +78,19 @@ async def get_scoped_group_ids(user: CurrentUser, session: Session) -> set[uuid.
 
 def group_in_scope(scoped: set[uuid.UUID] | None, group_id: uuid.UUID) -> bool:
     return scoped is None or group_id in scoped
+
+
+def effective_scope(user: User, scoped: set[uuid.UUID] | None) -> set[uuid.UUID] | None:
+    """Group scope for domain resources (orders, transports, documents...).
+
+    Dispatchers/admins keep their membership scope from
+    `get_scoped_group_ids`; a driver's scope is their home group
+    (`users.group_id` per the signed schema - GroupMember rows are
+    dispatcher memberships only).
+    """
+    if is_dispatcher(user):
+        return scoped
+    return set() if user.group_id is None else {user.group_id}
 
 
 ScopedGroupIds = Annotated[set[uuid.UUID] | None, Depends(get_scoped_group_ids)]
@@ -83,5 +104,8 @@ __all__ = [
     "get_current_user",
     "get_scoped_group_ids",
     "group_in_scope",
+    "is_admin",
+    "is_dispatcher",
     "require_roles",
+    "effective_scope",
 ]

@@ -95,6 +95,31 @@ order.
 - **THEN** both transports exist under the order and a transition on one
   leaves the other unchanged
 
+### Requirement: Order cancellation
+A dispatcher SHALL be able to cancel an order; the system MUST move every
+transport of that order that has not yet reached `completed` to the
+cancelled state while completed transports keep theirs. Cancellation MUST
+be recorded per transport in the event log and MUST be terminal: cancelled
+orders and transports MUST NOT be reactivated, transitioned, or extended
+with new transports.
+
+#### Scenario: Cancel cascades
+- **WHEN** a dispatcher cancels an order with one assigned and one
+  in-transit transport
+- **THEN** both transports move to cancelled and an event is recorded for
+  each
+
+#### Scenario: Completed transport untouched
+- **WHEN** a dispatcher cancels an order that already has a completed
+  transport
+- **THEN** the completed transport keeps its state and only the remaining
+  transports are cancelled
+
+#### Scenario: Cancelled transport is inert
+- **WHEN** a client attempts a state transition or driver assignment on a
+  cancelled transport
+- **THEN** the system rejects the request and the state is unchanged
+
 ### Requirement: Transport state machine
 The system SHALL track each transport through the defined states (at least:
 assigned, in-transit, completed) and MUST reject transitions not allowed by
@@ -102,8 +127,8 @@ the state machine. The concrete machine is finalized in discovery and then
 binding.
 
 #### Scenario: Valid transition
-- **WHEN** a driver marks an assigned transport as started
-- **THEN** the transport enters the in-transit state
+- **WHEN** a driver marks an assigned transport as arrived at loading
+- **THEN** the transport enters the at_loading state
 
 #### Scenario: Invalid transition
 - **WHEN** a client attempts a transition the state machine forbids (for

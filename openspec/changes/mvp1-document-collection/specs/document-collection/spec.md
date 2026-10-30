@@ -26,6 +26,12 @@ without the file bytes passing through the API server.
 - **THEN** the system issues a presigned upload URL and, after upload, the
   document appears attached to the transport in state pending-review
 
+#### Scenario: Dispatcher uploads on driver's behalf
+- **WHEN** a dispatcher attaches a document to a transport that is
+  in-transit (e.g. the driver will not photograph it)
+- **THEN** the system issues the same presigned upload flow and records the
+  dispatcher as the uploader
+
 #### Scenario: Expired URL
 - **WHEN** a client tries to use a presigned URL after its expiry
 - **THEN** storage rejects the upload and the system can issue a fresh URL

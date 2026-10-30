@@ -27,6 +27,7 @@ async def session_maker() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
             yield session
 
     app.dependency_overrides[get_session] = override
+    app.state.session_maker = maker
     yield maker
     app.dependency_overrides.clear()
     await engine.dispose()

@@ -6,9 +6,21 @@ mechanisms that are agnostic to the exact field list.
 - **State machine**: single module owning `can_transition(state, event)` +
   legal transition table from discovery; endpoints call it, no state writes
   bypass it. Transports carry current state; all history lives in events.
-- **Event log**: `transport_events` (UUID PK, transport_id, actor_id, type,
-  before_state, after_state, payload JSONB, created_at). INSERT-only; DB
-  revoked UPDATE/DELETE for the app role if feasible.
+  Binding machine (discovery §2): draft →(assign) assigned →(arrive_loading)
+  at_loading →(start_transit) in_transit →(arrive_unloading) at_unloading
+  →(finish_unloading) completed →(hand_in_documents) in_review
+  →(accept) ready_for_invoicing | (reject) returned →(resubmit) in_review;
+  unassign: assigned → draft; cancel: draft/assigned → cancelled;
+  order_cancelled (system event, fired only by the order-cancel cascade):
+  draft/assigned/at_loading/in_transit/at_unloading → cancelled. `cancelled`
+  is terminal. Review events (accept/reject/resubmit) stay in the table so
+  document-collection's review endpoints can fire them.
+- **Event log**: `transport_events` (UUID PK, transport_id FK nullable,
+  order_id FK nullable - exactly one set, CHECK xor; actor_id, type
+  (`state_change`\|`assignment`\|`note`), before_state, after_state, payload
+  JSON, occurred_at). INSERT-only; DB revoked UPDATE/DELETE for the app role
+  if feasible. Order-level edit/cancel events use the `order_id` side of the
+  same table ("edits append order-level events to the same log").
 - **Idempotency**: middleware keyed on (user, `Idempotency-Key`) storing
   request hash -> response; replay returns stored result. Applies to all
   POST/PATCH/DELETE under transport routes.
@@ -24,7 +36,17 @@ mechanisms that are agnostic to the exact field list.
   signed schema's `transports.driver_id`; max 2 enforced in service layer.
   Switch = row replace + `transport_events` event with new event_type
   `assignment`; transition endpoints verify the acting driver is currently
-  assigned.
+  assigned; removing the last driver fires `unassign` (assigned → draft),
+  adding a second to a draft transport fires `assign` (draft → assigned).
+- **Order cancellation**: `orders.cancelled_at` TIMESTAMPTZ NULL; cancel
+  endpoint sets it and moves every transport that has not yet reached
+  `completed` (states draft, assigned, at_loading, in_transit, at_unloading)
+  to `cancelled` via the `order_cancelled` machine event, appending a
+  state-change event per transport with the dispatcher as actor; transports
+  past `completed` (in_review, returned, ready_for_invoicing) keep their
+  state. Terminal: transition, assign, and create-transport endpoints reject
+  cancelled orders/transports; no reactivation path in MVP1; second cancel
+  returns 409.
 - **Currency & portal settings**: `portal_settings` single-row table
   (default_currency CHAR(3) CHECK IN ('CZK','EUR'), updated_at), seeded
   'CZK'; GET + update endpoint under /api/v1/settings; order POST falls back
