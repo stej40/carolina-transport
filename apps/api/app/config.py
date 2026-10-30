@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     s3_secret_key: str = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
     s3_bucket: str = "karolina-documents"
     s3_region: str = "garage"
+    presign_ttl_sec: int = 900
 
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:5174"]
 

@@ -6,6 +6,16 @@ only aggregation point and re-exports every public name.
 
 from app.schemas.auth import LoginRequest, RefreshRequest, TokenPair
 from app.schemas.common import Language, Role
+from app.schemas.document import (
+    DocumentAttributesUpdate,
+    DocumentConfirmOut,
+    DocumentCreate,
+    DocumentOut,
+    DocumentReviewCreate,
+    DocumentReviewOut,
+    DocumentUploadTicket,
+)
+from app.schemas.document_type import DocumentTypeCreate, DocumentTypeOut
 from app.schemas.fleet import FleetCreate, FleetOut
 from app.schemas.group import (
     GroupCreate,
@@ -44,6 +54,15 @@ __all__ = [
     "OrderCreate",
     "OrderOut",
     "OrderUpdate",
+    "DocumentCreate",
+    "DocumentOut",
+    "DocumentReviewOut",
+    "DocumentReviewCreate",
+    "DocumentAttributesUpdate",
+    "DocumentUploadTicket",
+    "DocumentConfirmOut",
+    "DocumentTypeCreate",
+    "DocumentTypeOut",
     "PortalSettingsOut",
     "PortalSettingsUpdate",
     "TransportCreate",

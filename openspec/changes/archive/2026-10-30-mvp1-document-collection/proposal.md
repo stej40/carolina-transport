@@ -19,6 +19,19 @@ and knowing exactly when a transport file is complete.
 Offline capture/queue (mvp1-offline-sync), OCR extraction (MVP3 - `data` JSONB
 stays free-form and OCR-ready by design), invoice generation (MVP2).
 
+## Follow-ups (MVP1 accepted limits - improve later)
+- The per-transport required-document set is computed from fixed rules only
+  (CMR => `is_international`, weighbridge pair => weight-priced order unit).
+  `cleaning_declaration` and `delivery_note` have no attribute to key off, so
+  they stay optional dispatcher-added documents, and discovery's "dispatcher
+  can adjust the required set per transport" (§1 completeness rule) is NOT
+  implemented - MVP2+ needs a required-set override table + portal UI.
+- Required document attributes are entered by hand (driver or dispatcher via
+  `PATCH /documents/{id}/attributes`) and approve is refused until every
+  type-required field is filled. Improve with MVP3 OCR: pre-fill the
+  attributes from the photo so the human only verifies/corrects them, and
+  keep the approve gate checking the merged OCR + manual values.
+
 ## Capabilities
 ### New Capabilities
 - `document-collection`

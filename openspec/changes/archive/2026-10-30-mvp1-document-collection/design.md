@@ -10,7 +10,9 @@
   drafts expire. Storage key server-generated under
   `documents/{transport_id}/{document_id}/{version}`. Both roles may upload
   except on cancelled transports (completed stays open for late paperwork);
-  the acting user is stored as uploader.
+  drivers only on transports assigned to them (checked against
+  `transport_driver` before the draft row is created; foreign requests are
+  rejected); the acting user is stored as uploader.
 - **Versions**: resubmission after reject creates a new version row; prior
   versions immutable; history endpoint lists all with uploader/timestamps.
 - **Review**: approve/reject (reason required) by dispatcher of the

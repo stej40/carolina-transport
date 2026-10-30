@@ -17,6 +17,7 @@ from app.deps import (
     is_dispatcher,
     require_roles,
 )
+from app.document_rules import missing_documents_for
 from app.event_log import append_event
 from app.models import (
     ADMIN_ROLES,
@@ -58,7 +59,14 @@ async def _driver_ids(session: Session, transport_id: uuid.UUID) -> list[uuid.UU
     return list(rows.scalars().all())
 
 
-async def _to_out(session: Session, transport: Transport) -> TransportOut:
+async def _to_out(
+    session: Session,
+    transport: Transport,
+    missing_map: dict[uuid.UUID, list[str]] | None = None,
+) -> TransportOut:
+    if missing_map is None:
+        missing_map = await missing_documents_for(session, [transport])
+    missing = missing_map.get(transport.id, [])
     return TransportOut(
         id=transport.id,
         group_id=transport.group_id,
@@ -71,6 +79,8 @@ async def _to_out(session: Session, transport: Transport) -> TransportOut:
         planned_loading_at=transport.planned_loading_at,
         planned_unloading_at=transport.planned_unloading_at,
         completed_at=transport.completed_at,
+        documents_complete=not missing,
+        missing_documents=missing,
     )
 
 
@@ -132,7 +142,8 @@ async def list_transports(
             .where(Transport.state != STATE_CANCELLED)
         )
     transports = list((await session.execute(stmt)).scalars().all())
-    return [await _to_out(session, t) for t in transports]
+    missing_map = await missing_documents_for(session, transports)
+    return [await _to_out(session, t, missing_map) for t in transports]
 
 
 @router.get("/{transport_id}", response_model=TransportOut)

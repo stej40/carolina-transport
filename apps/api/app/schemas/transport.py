@@ -49,3 +49,5 @@ class TransportOut(BaseModel):
     planned_loading_at: datetime | None
     planned_unloading_at: datetime | None
     completed_at: datetime | None
+    documents_complete: bool
+    missing_documents: list[str]

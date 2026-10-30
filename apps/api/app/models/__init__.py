@@ -5,6 +5,17 @@ only aggregation point and re-exports every public name.
 """
 
 from app.models.common import ADMIN_ROLES, LANGUAGES, ROLES, utcnow
+from app.models.document import (
+    DOC_SOURCES,
+    DOC_STATUS_ACCEPTED,
+    DOC_STATUS_DRAFT,
+    DOC_STATUS_PENDING_REVIEW,
+    DOC_STATUS_REJECTED,
+    DOCUMENT_STATUSES,
+    Document,
+)
+from app.models.document_review import REVIEW_DECISIONS, DocumentReview
+from app.models.document_type import VARIANTS, DocumentType
 from app.models.external_id import ExternalId
 from app.models.fleet import FleetMixin, Trailer, Truck
 from app.models.group import Group, GroupMember
@@ -32,6 +43,17 @@ __all__ = [
     "IdempotencyKey",
     "Order",
     "PortalSettings",
+    "Document",
+    "DOCUMENT_STATUSES",
+    "DOC_STATUS_DRAFT",
+    "DOC_STATUS_PENDING_REVIEW",
+    "DOC_STATUS_ACCEPTED",
+    "DOC_STATUS_REJECTED",
+    "DOC_SOURCES",
+    "DocumentReview",
+    "REVIEW_DECISIONS",
+    "DocumentType",
+    "VARIANTS",
     "Transport",
     "TransportDriver",
     "TransportEvent",

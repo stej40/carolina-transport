@@ -10,14 +10,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 from app.models.common import utcnow
 
-EVENT_TYPES = ("state_change", "assignment", "note")
+EVENT_TYPES = ("state_change", "assignment", "note", "document_submitted", "document_review")
 
 
 class TransportEvent(Base):
     __tablename__ = "transport_events"
     __table_args__ = (
         CheckConstraint(
-            "event_type IN ('state_change', 'assignment', 'note')",
+            "event_type IN ('state_change', 'assignment', 'note', "
+            "'document_submitted', 'document_review')",
             name="ck_transport_events_event_type",
         ),
         CheckConstraint(
