@@ -1,21 +1,28 @@
-"""Idempotency-Key middleware for domain write endpoints (offline outbox
+"""Idempotency-Key middleware for all API write endpoints (offline outbox
 replay safety, constraint 4).
 
-Keyed on (user, Idempotency-Key); the first request under a key is executed
-and its JSON response stored, replays of the identical request return the
-stored result with `Idempotency-Replayed: true`. Same key with a different
-payload is rejected (422). Non-2xx outcomes are not stored, so the client may
-retry with the same key. Requests without the header, without a valid access
-token, or outside the domain prefixes pass through untouched.
+Every POST/PATCH/PUT/DELETE under `/api/v1` except `/api/v1/auth/*` must
+carry an `Idempotency-Key` header (missing -> 400); auth token endpoints are
+exempt because their responses are credentials and must never enter the
+plaintext replay cache. Keyed on (user, Idempotency-Key); the first request
+under a key is executed and its JSON response stored (empty/non-JSON success
+bodies are stored as a null body), replays of the identical request return
+the stored result with `Idempotency-Replayed: true`. Same key with a
+different payload is rejected (422). Non-2xx outcomes are not stored, so the
+client may retry with the same key. Requests without a valid access token
+pass through and are rejected by the endpoint's own auth dependency.
 """
 
 import hashlib
 import json
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 import jwt
 from sqlalchemy import delete
+from sqlalchemy.engine import CursorResult
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -24,7 +31,37 @@ from app.models import IdempotencyKey
 from app.security import decode_access_token
 
 IDEMPOTENT_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
-DOMAIN_PREFIXES = ("/api/v1/orders", "/api/v1/transports", "/api/v1/settings")
+API_SCOPE_PREFIX = "/api/v1/"
+AUTH_EXEMPT_PREFIX = "/api/v1/auth/"
+RETENTION_DAYS = 30
+
+MISSING_KEY_DETAIL = (
+    "Missing required 'Idempotency-Key' header: every write must carry a unique "
+    "key per intended operation so safe retries and offline replays return the "
+    "original result instead of duplicating it."
+)
+
+
+def _requires_idempotency_key(method: str, path: str) -> bool:
+    if method not in IDEMPOTENT_METHODS:
+        return False
+    if not path.startswith(API_SCOPE_PREFIX):
+        return False
+    return not path.startswith(AUTH_EXEMPT_PREFIX)
+
+
+async def purge_stale_idempotency_keys(
+    maker: async_sessionmaker[AsyncSession],
+) -> int:
+    """Delete replay rows older than the retention window (startup task)."""
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=RETENTION_DAYS)
+    async with maker() as session:
+        result = cast(
+            "CursorResult[Any]",
+            await session.execute(delete(IdempotencyKey).where(IdempotencyKey.created_at < cutoff)),
+        )
+        await session.commit()
+    return result.rowcount
 
 
 def _token_user_id(request: Request) -> uuid.UUID | None:
@@ -46,12 +83,14 @@ def _token_user_id(request: Request) -> uuid.UUID | None:
 class IdempotencyMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         path = request.url.path
-        if request.method not in IDEMPOTENT_METHODS or not path.startswith(DOMAIN_PREFIXES):
+        if not _requires_idempotency_key(request.method, path):
+            return await call_next(request)
+        user_id = _token_user_id(request)
+        if user_id is None:
             return await call_next(request)
         key = request.headers.get("Idempotency-Key")
-        user_id = _token_user_id(request)
-        if not key or user_id is None:
-            return await call_next(request)
+        if not key:
+            return JSONResponse(status_code=400, content={"detail": MISSING_KEY_DETAIL})
 
         body = await request.body()
         request_hash = hashlib.sha256(f"{request.method}\n{path}\n".encode() + body).hexdigest()
@@ -71,10 +110,13 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                         content={"detail": "Idempotency-Key reused with a different request"},
                     )
                 stored: dict[str, Any] = existing.response
+                replay_headers = {"Idempotency-Replayed": "true"}
+                if stored["body"] is None:
+                    return Response(status_code=int(stored["status"]), headers=replay_headers)
                 return JSONResponse(
                     status_code=int(stored["status"]),
                     content=stored["body"],
-                    headers={"Idempotency-Replayed": "true"},
+                    headers=replay_headers,
                 )
             session.add(IdempotencyKey(user_id=user_id, key=key, request_hash=request_hash))
             await session.commit()
@@ -90,12 +132,11 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 pass
             elif 200 <= response.status_code < 300:
                 try:
-                    parsed = json.loads(raw)
+                    parsed: Any = json.loads(raw)
                 except (ValueError, UnicodeDecodeError):
                     parsed = None
-                if parsed is not None:
-                    row.response = {"status": response.status_code, "body": parsed}
-                    await session.commit()
+                row.response = {"status": response.status_code, "body": parsed}
+                await session.commit()
             else:
                 await session.execute(
                     delete(IdempotencyKey).where(

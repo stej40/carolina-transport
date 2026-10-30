@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from conftest import bearer, login
+from conftest import bearer, idem, login
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -43,19 +43,23 @@ async def setup(client: AsyncClient, add_user: Callable[..., Awaitable[User]]) -
         uid = (await client.get("/api/v1/auth/me", headers=h)).json()["id"]
         setattr(fx, f"drv{i}", h)
         setattr(fx, f"drv{i}_id", uid)
-    created = await client.post("/api/v1/groups", json={"name": "A"}, headers=fx.admin)
+    created = await client.post(
+        "/api/v1/groups", json={"name": "A"}, headers={**fx.admin, **idem()}
+    )
     fx.group_a = created.json()["id"]
-    fx.group_b = (await client.post("/api/v1/groups", json={"name": "B"}, headers=fx.admin)).json()[
-        "id"
-    ]
+    fx.group_b = (
+        await client.post("/api/v1/groups", json={"name": "B"}, headers={**fx.admin, **idem()})
+    ).json()["id"]
     assert (
-        await client.put(f"/api/v1/groups/{fx.group_a}/members/{disp_id}", headers=fx.admin)
+        await client.put(
+            f"/api/v1/groups/{fx.group_a}/members/{disp_id}", headers={**fx.admin, **idem()}
+        )
     ).status_code == 204
     for i in (1, 2, 3):
         moved = await client.put(
             f"/api/v1/drivers/{getattr(fx, f'drv{i}_id')}/group",
             json={"group_id": fx.group_a},
-            headers=fx.admin,
+            headers={**fx.admin, **idem()},
         )
         assert moved.status_code == 200, moved.text
     return fx
@@ -82,7 +86,9 @@ async def _create_order(
     client: AsyncClient, headers: dict, group_id: str, number: str, **over: Any
 ) -> dict[str, Any]:
     response = await client.post(
-        "/api/v1/orders", json=_order_payload(group_id, number, **over), headers=headers
+        "/api/v1/orders",
+        json=_order_payload(group_id, number, **over),
+        headers={**headers, **idem()},
     )
     assert response.status_code == 201, response.text
     return response.json()
@@ -92,7 +98,7 @@ async def _create_transport(
     client: AsyncClient, headers: dict, order_id: str, **over: Any
 ) -> dict[str, Any]:
     response = await client.post(
-        "/api/v1/transports", json={"order_id": order_id, **over}, headers=headers
+        "/api/v1/transports", json={"order_id": order_id, **over}, headers={**headers, **idem()}
     )
     assert response.status_code == 201, response.text
     return response.json()
@@ -100,13 +106,17 @@ async def _create_transport(
 
 async def _assign(client: AsyncClient, headers: dict, tid: str, driver_ids: list[str]) -> Any:
     return await client.put(
-        f"/api/v1/transports/{tid}/drivers", json={"driver_ids": driver_ids}, headers=headers
+        f"/api/v1/transports/{tid}/drivers",
+        json={"driver_ids": driver_ids},
+        headers={**headers, **idem()},
     )
 
 
 async def _transition(client: AsyncClient, headers: dict, tid: str, event: str) -> Any:
     return await client.post(
-        f"/api/v1/transports/{tid}/transitions", json={"event": event}, headers=headers
+        f"/api/v1/transports/{tid}/transitions",
+        json={"event": event},
+        headers={**headers, **idem()},
     )
 
 
@@ -252,7 +262,9 @@ async def test_cancel_order_cascade(
     await _assign(client, fx.disp, t_done["id"], [fx.drv1_id])
     await _to_state(client, fx, t_done["id"], "completed")
 
-    cancelled = await client.post(f"/api/v1/orders/{order['id']}/cancel", headers=fx.disp)
+    cancelled = await client.post(
+        f"/api/v1/orders/{order['id']}/cancel", headers={**fx.disp, **idem()}
+    )
     assert cancelled.status_code == 200, cancelled.text
     assert cancelled.json()["cancelled_at"] is not None
 
@@ -271,9 +283,11 @@ async def test_cancel_order_cascade(
     assert inert_assign.status_code == 409
     # cancelled order cannot gain transports; second cancel rejected
     assert (
-        await client.post("/api/v1/transports", json={"order_id": order["id"]}, headers=fx.disp)
+        await client.post(
+            "/api/v1/transports", json={"order_id": order["id"]}, headers={**fx.disp, **idem()}
+        )
     ).status_code == 409
-    again = await client.post(f"/api/v1/orders/{order['id']}/cancel", headers=fx.disp)
+    again = await client.post(f"/api/v1/orders/{order['id']}/cancel", headers={**fx.disp, **idem()})
     assert again.status_code == 409
 
     history = (
@@ -310,12 +324,12 @@ async def test_order_currency_defaults_and_validation(
     bad = await client.post(
         "/api/v1/orders",
         json=_order_payload(fx.group_a, "3", currency="USD"),
-        headers=fx.disp,
+        headers={**fx.disp, **idem()},
     )
     assert bad.status_code == 422
 
     changed = await client.put(
-        "/api/v1/settings", json={"default_currency": "EUR"}, headers=fx.disp
+        "/api/v1/settings", json={"default_currency": "EUR"}, headers={**fx.disp, **idem()}
     )
     assert changed.status_code == 200
     assert changed.json() == {"default_currency": "EUR"}
@@ -323,7 +337,7 @@ async def test_order_currency_defaults_and_validation(
     assert defaulted["currency"] == "EUR"
 
     invalid_setting = await client.put(
-        "/api/v1/settings", json={"default_currency": "USD"}, headers=fx.disp
+        "/api/v1/settings", json={"default_currency": "USD"}, headers={**fx.disp, **idem()}
     )
     assert invalid_setting.status_code == 422
     served = await client.get("/api/v1/settings", headers=fx.disp)
@@ -336,7 +350,7 @@ async def test_missing_billing_data_rejected(
     fx = await setup(client, add_user)
     body = _order_payload(fx.group_a, "1")
     del body["unit_price"], body["vat_rate"]
-    response = await client.post("/api/v1/orders", json=body, headers=fx.disp)
+    response = await client.post("/api/v1/orders", json=body, headers={**fx.disp, **idem()})
     assert response.status_code == 422
     fields = {err["loc"][-1] for err in response.json()["detail"]}
     assert {"unit_price", "vat_rate"} <= fields
@@ -348,7 +362,9 @@ async def test_order_edit_logged(
     fx = await setup(client, add_user)
     order = await _create_order(client, fx.disp, fx.group_a, "1")
     edited = await client.patch(
-        f"/api/v1/orders/{order['id']}", json={"unit_price": "600.00"}, headers=fx.disp
+        f"/api/v1/orders/{order['id']}",
+        json={"unit_price": "600.00"},
+        headers={**fx.disp, **idem()},
     )
     assert edited.status_code == 200, edited.text
     assert float(edited.json()["price_total"]) == 7500.0

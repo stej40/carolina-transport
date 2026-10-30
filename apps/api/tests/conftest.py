@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
+from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -71,3 +72,8 @@ async def login(client: AsyncClient, email: str, password: str = "secret123") ->
 
 def bearer(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+def idem() -> dict[str, str]:
+    """Fresh Idempotency-Key headers - one per intended write (constraint 4)."""
+    return {"Idempotency-Key": str(uuid4())}

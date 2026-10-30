@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -5,15 +8,24 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.db import SessionLocal
 from app.deps import AuthError
-from app.idempotency import IdempotencyMiddleware
+from app.idempotency import IdempotencyMiddleware, purge_stale_idempotency_keys
 from app.routers import auth, drivers, fleet, groups, health, orders, transports, users
 from app.routers import settings as settings_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Retention: replay rows are bounded; idempotent across replicas.
+    await purge_stale_idempotency_keys(app.state.session_maker)
+    yield
+
 
 app = FastAPI(
     title="System KAROLINA API",
     version="0.1.0",
     docs_url="/api/docs" if settings.debug else None,
     openapi_url="/api/openapi.json" if settings.debug else None,
+    lifespan=lifespan,
 )
 app.state.session_maker = SessionLocal
 
