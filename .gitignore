@@ -16,7 +16,8 @@ coverage/
 # Env & secrets
 .env
 .env.*
-!.env.example
+!.env.local.example
+!.env.prod.example
 
 # Docker / infra data
 infra/data/
@@ -26,3 +27,6 @@ infra/data/
 .idea/
 .vscode/
 *.swp
+
+# domain documents folder
+docs/discovery/

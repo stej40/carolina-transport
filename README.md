@@ -53,7 +53,28 @@ make web                  # dispatcher portal on http://localhost:5173
 make pwa                  # driver PWA on http://localhost:5174
 ```
 
-Backend config lives in `apps/api/.env` (copy from `apps/api/.env.example` – defaults match the compose stack).
+### Environment profiles (backend)
+
+The API resolves `apps/api/.env.<profile>` based on `APP_ENV` (allowed: `local`, `prod`;
+default `local`). Real environment variables always override dotenv file values.
+
+```bash
+cp apps/api/.env.local.example apps/api/.env.local   # local dev, DEBUG=true
+make api-dev                                         # runs with APP_ENV=local
+```
+
+- `.env.local` / `.env.prod` are git-ignored and never committed; the `.env.*.example`
+  files document every supported key.
+- Local docker (`docker compose --profile full up`): the `api` container mounts
+  `apps/api/.env.local` read-only, so `cp apps/api/.env.local.example apps/api/.env.local`
+  first; compose inline env only overrides the container-network `DATABASE_URL`
+  and `S3_ENDPOINT`.
+- Migration note: a plain `apps/api/.env` is no longer read - move it to `.env.local`.
+- Production (VPS, see the `mvp1-deploy-pilot` OpenSpec change): place `.env.prod`
+  in the API working directory (container `WORKDIR /app`), created from
+  `.env.prod.example`, and set `APP_ENV=prod`. Startup **fails fast** in prod if the
+  file is missing, `DEBUG=true`, or `SECRET_KEY` is the dev placeholder / shorter
+  than 32 characters.
 
 ### Useful commands
 
@@ -61,7 +82,8 @@ Backend config lives in `apps/api/.env` (copy from `apps/api/.env.example` – d
 make api-test             # pytest
 make lint                 # ruff + oxlint
 make typecheck            # mypy (strict) + tsc
-make infra-down           # stop postgres + garage
+make infra-full           # postgres + garage + api container
+make infra-down           # stop everything
 
 # S3 round-trip smoke test (presigned PUT/GET against Garage)
 cd apps/api && uv run python scripts/smoke_s3.py
