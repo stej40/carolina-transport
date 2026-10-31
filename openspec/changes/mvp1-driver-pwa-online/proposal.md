@@ -3,8 +3,8 @@
 ## Why
 Drivers are the data source: statuses and photos of paperwork must be
 captured at the site, on the phone, without IT literacy barriers. The PWA is
-installable (no app store) and online-first here; offline is the follow-up
-change.
+installable (no app store) on Android and iOS, and online-first here;
+offline is the follow-up change.
 
 ## What Changes
 - New capability `driver-pwa` (online part): login, own active transports +
@@ -27,5 +27,7 @@ notifications, native apps.
 ## Impact
 - `apps/driver-pwa`: real app replacing Vite scaffold (TanStack Router/Query,
   camera capture via `capture` input, auth flow against `/api/v1/auth`).
+- `packages/shared`: generated API types from the OpenAPI spec (new codegen
+  pipeline introduced here; `mvp1-dispatcher-portal` reuses it).
 
 **Depends on:** `mvp1-transports-and-orders`, `mvp1-document-collection`.

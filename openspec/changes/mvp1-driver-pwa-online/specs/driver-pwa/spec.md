@@ -41,8 +41,16 @@ pickup, arrival at delivery, completed) from the phone.
 
 ### Requirement: Simple field UX
 The driver interface MUST be operable with large touch targets and minimal
-text input, and MUST be installable from the browser without an app store.
+text input, and MUST be installable from the browser without an app store on
+both Android (Chrome) and iOS (Safari).
 
 #### Scenario: Install on phone
 - **WHEN** a driver opens the portal URL on their phone and chooses "install"
 - **THEN** the PWA is added to the home screen and launches standalone
+
+#### Scenario: Install on iPhone
+- **WHEN** a driver opens the app URL in iOS Safari, which offers no
+  automatic install prompt
+- **THEN** the PWA presents step-by-step "Share -> Add to Home Screen"
+  instructions and the installed app launches standalone with its icons and
+  respects the notch/safe areas
