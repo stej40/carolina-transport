@@ -33,7 +33,7 @@ from app.schemas.transport import (
     TransportTransition,
 )
 from app.schemas.transport_event import TransportEventOut
-from app.schemas.user import ProfileUpdate, UserCreate, UserOut
+from app.schemas.user import ProfileUpdate, UserCreate, UserOut, UserRolesReplace
 
 __all__ = [
     "Language",
@@ -44,6 +44,7 @@ __all__ = [
     "ProfileUpdate",
     "UserCreate",
     "UserOut",
+    "UserRolesReplace",
     "GroupCreate",
     "GroupDetailOut",
     "GroupMove",
