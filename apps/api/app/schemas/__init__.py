@@ -16,7 +16,7 @@ from app.schemas.document import (
     DocumentUploadTicket,
 )
 from app.schemas.document_type import DocumentTypeCreate, DocumentTypeOut
-from app.schemas.fleet import FleetCreate, FleetOut
+from app.schemas.fleet import FleetCreate, FleetOut, FleetUpdate
 from app.schemas.group import (
     GroupCreate,
     GroupDetailOut,
@@ -51,6 +51,7 @@ __all__ = [
     "GroupOut",
     "GroupUpdate",
     "FleetCreate",
+    "FleetUpdate",
     "FleetOut",
     "OrderCreate",
     "OrderOut",

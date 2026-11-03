@@ -103,15 +103,15 @@ async def test_fleet_registration_and_scoping(
 
     truck = await client.post(
         "/api/v1/trucks",
-        json={"spz": "1um 2744", "group_id": fx.group_a},
-        headers={**fx.d1, **idem()},
+        json={"spz": "1UM 2744", "group_id": fx.group_a},
+        headers={**fx.admin, **idem()},
     )
     assert truck.status_code == 201, truck.text
     assert truck.json()["spz"] == "1UM 2744"
     trailer = await client.post(
         "/api/v1/trailers",
         json={"spz": "2SF 8619", "group_id": fx.group_a},
-        headers={**fx.d1, **idem()},
+        headers={**fx.admin, **idem()},
     )
     assert trailer.status_code == 201, trailer.text
 
@@ -123,11 +123,11 @@ async def test_fleet_registration_and_scoping(
     )
     assert dup.status_code == 409
 
-    # foreign group is not addressable for registration
+    # unknown group is not addressable for registration
     foreign = await client.post(
         "/api/v1/trucks",
-        json={"spz": "9H1 7475", "group_id": fx.group_b},
-        headers={**fx.d1, **idem()},
+        json={"spz": "9H1 7475", "group_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"},
+        headers={**fx.admin, **idem()},
     )
     assert foreign.status_code == 404
 
@@ -154,7 +154,7 @@ async def test_moves_between_groups(
         await client.post(
             "/api/v1/trucks",
             json={"spz": "1UM 2744", "group_id": fx.group_a},
-            headers={**fx.d1, **idem()},
+            headers={**fx.admin, **idem()},
         )
     ).json()
 
@@ -216,7 +216,7 @@ async def test_moves_between_groups(
         await client.post(
             "/api/v1/trailers",
             json={"spz": "2SF 8619", "group_id": fx.group_a},
-            headers={**fx.d1, **idem()},
+            headers={**fx.admin, **idem()},
         )
     ).json()
     trailer_move = await client.patch(

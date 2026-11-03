@@ -1,6 +1,7 @@
 """Fleet master-data schemas."""
 
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,10 +12,15 @@ class FleetCreate(BaseModel):
     label: str | None = Field(default=None, max_length=255)
 
 
+class FleetUpdate(BaseModel):
+    label: str | None = Field(default=None, max_length=255)
+
+
 class FleetOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     spz: str
-    group_id: uuid.UUID
+    group_id: uuid.UUID | None
     label: str | None
+    retired_at: datetime | None

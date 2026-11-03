@@ -2,11 +2,12 @@
 
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import (
     ScopedGroupIds,
@@ -22,9 +23,11 @@ from app.event_log import append_event
 from app.models import (
     ADMIN_ROLES,
     Order,
+    Trailer,
     Transport,
     TransportDriver,
     TransportEvent,
+    Truck,
     User,
 )
 from app.schemas import (
@@ -93,6 +96,20 @@ async def _get_transport_or_404(
     return transport
 
 
+async def _ensure_fleet_active(
+    session: AsyncSession, model: type[Truck] | type[Trailer], resource_id: uuid.UUID | None
+) -> None:
+    """New transports may only reference active fleet (design decision 4).
+
+    Same message for missing and retired - no enumeration.
+    """
+    if resource_id is None:
+        return
+    resource = cast("Truck | Trailer | None", await session.get(model, resource_id))
+    if resource is None or resource.retired_at is not None:
+        raise HTTPException(status_code=400, detail="Unknown truck or trailer")
+
+
 @router.post("", response_model=TransportOut, status_code=201)
 async def create_transport(
     body: TransportCreate, session: Session, scoped: ScopedGroupIds, caller: DispatcherCaller
@@ -102,6 +119,8 @@ async def create_transport(
         raise HTTPException(status_code=404, detail="Order not found")
     if order.cancelled_at is not None:
         raise HTTPException(status_code=409, detail="Cancelled order cannot gain transports")
+    await _ensure_fleet_active(session, Truck, body.truck_id)
+    await _ensure_fleet_active(session, Trailer, body.trailer_id)
     transport_id = body.id or uuid.uuid4()
     if await session.get(Transport, transport_id) is not None:
         raise HTTPException(status_code=409, detail="Transport id already exists")

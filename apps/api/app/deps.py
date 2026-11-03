@@ -76,7 +76,7 @@ async def get_scoped_group_ids(user: CurrentUser, session: Session) -> set[uuid.
     return set(result.scalars().all())
 
 
-def group_in_scope(scoped: set[uuid.UUID] | None, group_id: uuid.UUID) -> bool:
+def group_in_scope(scoped: set[uuid.UUID] | None, group_id: uuid.UUID | None) -> bool:
     return scoped is None or group_id in scoped
 
 
