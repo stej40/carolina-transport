@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.config import (
+    DEV_BOOTSTRAP_PASSWORD,
     DEV_SECRET_PLACEHOLDER,
     Settings,
     _resolve_env_profile,
@@ -27,11 +28,14 @@ _ALL_SETTING_VARS = (
     "S3_REGION",
     "PRESIGN_TTL_SEC",
     "CORS_ORIGINS",
+    "BOOTSTRAP_ADMIN_EMAIL",
+    "BOOTSTRAP_ADMIN_PASSWORD",
 )
 
 _EXPECTED_EXAMPLE_KEYS = frozenset(_ALL_SETTING_VARS)
 
 _VALID_PROD_SECRET = "x" * 40
+_VALID_PROD_BOOTSTRAP = "correct-horse-battery-staple"
 
 
 @pytest.fixture(autouse=True)
@@ -81,7 +85,8 @@ class TestProfileSelection:
             "DATABASE_URL=postgresql+asyncpg://local:v@h/db1\nDEBUG=true\n"
         )
         (tmp_path / ".env.prod").write_text(
-            f"DATABASE_URL=postgresql+asyncpg://prod:v@h/db2\nDEBUG=false\nSECRET_KEY={_VALID_PROD_SECRET}\n"
+            "DATABASE_URL=postgresql+asyncpg://prod:v@h/db2\nDEBUG=false\n"
+            f"SECRET_KEY={_VALID_PROD_SECRET}\nBOOTSTRAP_ADMIN_PASSWORD={_VALID_PROD_BOOTSTRAP}\n"
         )
         monkeypatch.setenv("APP_ENV", "prod")
         settings = get_settings()
@@ -121,8 +126,59 @@ class TestProdSafetyGuard:
 
     def test_valid_prod_settings_pass(self, tmp_path: Path) -> None:
         (tmp_path / ".env.prod").write_text("DEBUG=false\n")
-        settings = Settings(app_env="prod", secret_key=_VALID_PROD_SECRET)
+        settings = Settings(
+            app_env="prod",
+            secret_key=_VALID_PROD_SECRET,
+            bootstrap_admin_password=_VALID_PROD_BOOTSTRAP,
+        )
         assert settings.debug is False
+
+    def test_prod_rejects_placeholder_bootstrap_password(self, tmp_path: Path) -> None:
+        (tmp_path / ".env.prod").write_text("DEBUG=false\n")
+        with pytest.raises(ValidationError, match="BOOTSTRAP_ADMIN_PASSWORD"):
+            Settings(
+                app_env="prod",
+                secret_key=_VALID_PROD_SECRET,
+                bootstrap_admin_password=DEV_BOOTSTRAP_PASSWORD,
+            )
+
+    def test_prod_rejects_empty_bootstrap_password(self, tmp_path: Path) -> None:
+        (tmp_path / ".env.prod").write_text("DEBUG=false\n")
+        with pytest.raises(ValidationError, match="BOOTSTRAP_ADMIN_PASSWORD"):
+            Settings(app_env="prod", secret_key=_VALID_PROD_SECRET, bootstrap_admin_password="")
+
+    def test_prod_rejects_short_bootstrap_password(self, tmp_path: Path) -> None:
+        (tmp_path / ".env.prod").write_text("DEBUG=false\n")
+        with pytest.raises(ValidationError, match="BOOTSTRAP_ADMIN_PASSWORD"):
+            Settings(
+                app_env="prod", secret_key=_VALID_PROD_SECRET, bootstrap_admin_password="12345"
+            )
+
+    def test_prod_rejects_empty_bootstrap_email(self, tmp_path: Path) -> None:
+        (tmp_path / ".env.prod").write_text("DEBUG=false\n")
+        with pytest.raises(ValidationError, match="BOOTSTRAP_ADMIN_EMAIL"):
+            Settings(
+                app_env="prod",
+                secret_key=_VALID_PROD_SECRET,
+                bootstrap_admin_email="   ",
+                bootstrap_admin_password=_VALID_PROD_BOOTSTRAP,
+            )
+
+    def test_prod_accepts_compliant_bootstrap_credentials(self, tmp_path: Path) -> None:
+        (tmp_path / ".env.prod").write_text("DEBUG=false\n")
+        settings = Settings(
+            app_env="prod",
+            secret_key=_VALID_PROD_SECRET,
+            bootstrap_admin_email="root@agro-karolina.cz",
+            bootstrap_admin_password=_VALID_PROD_BOOTSTRAP,
+        )
+        assert settings.bootstrap_admin_email == "root@agro-karolina.cz"
+
+    def test_local_accepts_bootstrap_defaults(self) -> None:
+        settings = get_settings()
+        assert settings.app_env == "local"
+        assert settings.bootstrap_admin_email == "systemadmin@example.local"
+        assert settings.bootstrap_admin_password == DEV_BOOTSTRAP_PASSWORD
 
 
 class TestExampleTemplates:

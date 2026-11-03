@@ -9,6 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 VALID_PROFILES: tuple[str, ...] = ("local", "prod")
 DEV_SECRET_PLACEHOLDER = "dev-only-secret-change-me-0123456789abcdef"
 PROD_MIN_SECRET_LEN = 32
+DEV_BOOTSTRAP_PASSWORD = "dev-bootstrap-password-change-me"
+PROD_MIN_PASSWORD_LEN = 12
 
 
 def _resolve_env_profile() -> tuple[str, Path]:
@@ -43,6 +45,10 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:5174"]
 
+    # Startup bootstrap of the emergency system-admin account (app/bootstrap.py).
+    bootstrap_admin_email: str = "systemadmin@example.local"
+    bootstrap_admin_password: str = DEV_BOOTSTRAP_PASSWORD
+
     @model_validator(mode="after")
     def _prod_safety(self) -> "Settings":
         if self.app_env != "prod":
@@ -57,6 +63,18 @@ class Settings(BaseSettings):
             msg = (
                 "SECRET_KEY in the prod profile must be a unique value "
                 f"(>= {PROD_MIN_SECRET_LEN} chars, not the dev placeholder)"
+            )
+            raise ValueError(msg)
+        if not self.bootstrap_admin_email.strip():
+            msg = "BOOTSTRAP_ADMIN_EMAIL in the prod profile must not be empty"
+            raise ValueError(msg)
+        if (
+            self.bootstrap_admin_password == DEV_BOOTSTRAP_PASSWORD
+            or len(self.bootstrap_admin_password) < PROD_MIN_PASSWORD_LEN
+        ):
+            msg = (
+                "BOOTSTRAP_ADMIN_PASSWORD in the prod profile must be a real password "
+                f"(>= {PROD_MIN_PASSWORD_LEN} chars, not the dev placeholder)"
             )
             raise ValueError(msg)
         return self

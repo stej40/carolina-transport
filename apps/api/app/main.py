@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.bootstrap import ensure_system_admin
 from app.config import settings
 from app.db import SessionLocal
 from app.deps import AuthError
@@ -28,6 +29,9 @@ from app.routers import settings as settings_router
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Retention: replay rows are bounded; idempotent across replicas.
     await purge_stale_idempotency_keys(app.state.session_maker)
+    # Non-functional guarantee: the API must be usable, i.e. have an active
+    # system-admin, from the very first start (bootstrap-system-admin).
+    await ensure_system_admin(app.state.session_maker)
     yield
 
 
